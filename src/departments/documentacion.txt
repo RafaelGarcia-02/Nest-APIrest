@@ -1,0 +1,297 @@
+📘 1. El concepto clave: Prisma Client
+
+Prisma Client es una librería auto-generada, tipada y basada en el modelo de datos definido en schema.prisma.
+
+Cuando ejecutas:
+
+npx prisma generate
+
+
+Prisma crea un cliente con métodos como:
+
+findMany
+
+findFirst
+
+findUnique
+
+create
+
+update
+
+delete
+
+count
+
+aggregate
+
+groupBy
+
+y otros
+
+Cada modelo de la base de datos se convierte en un objeto con estos métodos.
+
+📘 2. Tipos de consultas en Prisma
+✔ 2.1 Consultas de lectura (Read)
+
+Estas son las operaciones principales:
+
+findMany()
+
+Trae muchos registros (con filtros opcionales).
+
+prisma.user.findMany();
+
+findUnique()
+
+Trae un solo registro usando un campo único (@id o @unique).
+
+prisma.user.findUnique({
+  where: { id: 1 }
+});
+
+findFirst()
+
+Trae el primer registro que cumpla condiciones (incluso si no son únicas).
+
+prisma.user.findFirst({
+  where: { name: "Juan" }
+});
+
+count()
+
+Cuenta registros.
+
+prisma.user.count();
+
+aggregate()
+
+Operaciones matemáticas (sum, avg, max, min…)
+
+prisma.order.aggregate({
+  _sum: { total: true }
+});
+
+groupBy()
+
+Agrupación estilo SQL.
+
+prisma.order.groupBy({
+  by: ["status"],
+  _count: true
+});
+
+📘 3. El objeto WHERE (filtros)
+
+El corazón de Prisma es el objeto where.
+
+Ejemplo básico:
+
+where: {
+  age: { gt: 18 }
+}
+
+✔ 3.1 Operadores de comparación
+Operador	Significado
+equals	igual a
+gt	mayor que
+gte	mayor o igual
+lt	menor que
+lte	menor o igual
+not	no igual
+✔ 3.2 Operadores para texto
+Operador	Significado
+contains	contiene
+startsWith	empieza con
+endsWith	termina con
+mode: "insensitive"	case-insensitive
+
+Ejemplo:
+
+where: {
+  name: { contains: "juan", mode: "insensitive" }
+}
+
+✔ 3.3 Operadores lógicos
+Operador	Significado
+AND	todas las condiciones
+OR	al menos una
+NOT	negación
+where: {
+  AND: [
+    { age: { gt: 18 } },
+    { role: "ADMIN" }
+  ]
+}
+
+✔ 3.4 Operadores para listas
+Operador	Significado
+in	en la lista
+notIn	no en la lista
+📘 4. Relaciones (multitabla)
+
+Prisma maneja relaciones con:
+
+include
+
+select
+
+filtros dentro de relaciones
+
+include
+
+Trae datos de tablas relacionadas (JOIN implícito):
+
+prisma.department.findUnique({
+  where: { id: 1 },
+  include: { employees: true }
+});
+
+select
+
+Permite elegir columnas específicas:
+
+select: {
+  id: true,
+  name: true,
+  employees: {
+    select: {
+      name: true
+    }
+  }
+}
+
+✔ Filtros dentro de relaciones
+include: {
+  employees: {
+    where: { name: { startsWith: "J" } }
+  }
+}
+
+✔ Operadores relacionales
+Operador	Significado
+some	al menos uno cumple
+every	todos cumplen
+none	ninguno cumple
+
+Ejemplo:
+
+where: {
+  employees: {
+    some: { login: { contains: "admin" } }
+  }
+}
+
+📘 5. Paginación
+
+Prisma soporta paginación clásica:
+
+skip → cuántos saltar
+
+take → cuántos traer
+
+prisma.user.findMany({
+  skip: 20,
+  take: 10
+});
+
+📘 6. Ordenamiento
+orderBy: {
+  name: "asc"
+}
+
+
+Ordenar por múltiples criterios:
+
+orderBy: [
+  { age: "desc" },
+  { name: "asc" }
+]
+
+📘 7. Mutaciones (Create, Update, Delete)
+✔ create
+prisma.user.create({
+  data: {
+    name: "Juan",
+    department: {
+      connect: { id: 1 }
+    }
+  }
+});
+
+✔ update
+prisma.user.update({
+  where: { id: 1 },
+  data: { name: "Nuevo" }
+});
+
+✔ deleteMany con condiciones
+deleteMany({
+  where: { id: { gt: 3 } }
+});
+
+📘 8. Conexiones entre tablas
+
+Prisma permite:
+
+connect
+
+create
+
+disconnect
+
+delete
+
+set
+
+Ejemplo: crear empleado con departamento asociado:
+
+data: {
+  name: "Juan",
+  department: {
+    connect: { id: 2 }
+  }
+}
+
+📘 9. Consultas RAW (SQL directo)
+
+A veces necesitas algo que Prisma no permite.
+
+$queryRaw → select
+
+$executeRaw → insert/update/delete
+
+Ejemplo:
+
+await prisma.$executeRaw`ALTER TABLE User AUTO_INCREMENT = 1`;
+
+📘 10. Transacciones
+
+Prisma soporta transacciones:
+
+✔ Transacción automática
+await prisma.$transaction([
+  prisma.user.create(...),
+  prisma.order.create(...)
+]);
+
+✔ Transacción interactiva
+await prisma.$transaction(async (tx) => {
+  await tx.user.create(...);
+  await tx.order.create(...);
+});
+
+📘 11. Buenas prácticas
+
+✔ Siempre filtrar datos sensibles con DTO
+✔ Usar include solo cuando sea necesario
+✔ Evitar select *
+✔ Usar transacciones para operaciones críticas
+✔ Usar raw SQL solo como último recurso
+
+📘 12. Diferencias clave con ORMs tradicionales
+Prisma	Hibernate / TypeORM / JPA
+Consultas con objetos	Consultas con métodos o JPQL
+No usa SQL manual por defecto	Sí usa SQL o JPQL
+Cliente generado	ORM clásico
+Relaciones se manejan con include/select	JOIN explícito
